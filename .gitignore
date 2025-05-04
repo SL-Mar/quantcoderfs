@@ -19,3 +19,6 @@ frontend/dist/
 # Environment files
 *.env
 venv
+
+# Ignore generated strategy files and backtests
+backend/projects/lean/Algorithm.Python/
