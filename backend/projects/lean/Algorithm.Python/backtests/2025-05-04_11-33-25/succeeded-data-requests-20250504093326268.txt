@@ -1,0 +1,2 @@
+/equity/usa/daily/spy.zip
+/equity/usa/hour/spy.zip
