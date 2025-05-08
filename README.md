@@ -12,7 +12,6 @@ This repository contains the FastAPI backend, CrewAI-based agents, and modular o
 
 > The strategy research, including demonstrations and benchmarks, is published at: [https://quantcoderfs.substack.com/s/strategies](https://quantcoderfs.substack.com/s/strategies)
 > Technical documentation and development updates are available at: [https://quantcoderfs.substack.com/s/development-updates-and-technical](https://quantcoderfs.substack.com/s/development-updates-and-technical)
-> Both sections are hosted on Substack and accessible via subscription. This constitutes the primary monetization path for QuantCoder FS.
 
 ---
 
@@ -69,6 +68,33 @@ Each stage is validated via typed Pydantic models (`SummaryResponse`, `Generated
 
 ---
 
+### Interface Walkthrough
+
+Below is a snapshot of the QuantCoder FS interface during the extraction and code generation process.
+
+![Interface View](frontend/public/QCFS_demo3.png)
+*Figure 1 – Interface showing the PDF reader (left) and generated QuantConnect code (right). The active document is “Benchmarks as Limits to Arbitrage: Understanding the Low Volatility Anomaly”.*
+
+---
+
+### LLM Workflow Trace
+
+A detailed log from the backend console illustrates the successful completion of each agentic step.
+
+![LLM Log](frontend/public/QCFS_LLM_Log.png)
+*Figure 2 – Backend console log showing task dispatch and successful strategy generation using GPT-4.1.*
+
+---
+
+### Lean Backtest Output
+
+Once code generation is complete, a local Lean backtest is triggered. The following screenshot shows the backtest results for the low volatility strategy.
+
+![Backtest Output](frontend/public/QCFS_Backtest.png)
+*Figure 3 – LEAN backtest results printed in the terminal. The engine serves as both a compilation validator and a runtime executor.*
+
+---
+
 ## PDF Analysis Pipeline
 
 The section extraction logic used in the first stage of the flow is encapsulated in a custom CrewAI tool and consists of:
@@ -77,8 +103,6 @@ The section extraction logic used in the first stage of the flow is encapsulated
 * `TextPreprocessor`: Removes URLs, numbering, headers, and irrelevant formatting artifacts.
 * `HeadingDetector`: Uses both rule-based regular expressions and spaCy NLP to detect potential section titles.
 * `SectionSplitter`: Splits the text into structured sections based on detected headings, assigning each a `type_hint` field (e.g., "methodology", "findings").
-
-This multi-step process ensures a reliable input for summarization and enables the pipeline to operate on a wide range of academic and practitioner articles.
 
 ---
 
@@ -101,7 +125,7 @@ frontend/
 ├── components/    # PDF viewer, code display, chat panel
 ├── lib/           # State management and API abstraction
 ├── pages/         # Next.js page routing
-├── public/        # Static assets
+├── public/        # Static assets (screenshots, icons)
 ├── styles/        # Global Tailwind CSS styles
 ├── types/         # TypeScript interfaces and shared types
 ├── next.config.js # Next.js config file
@@ -115,8 +139,8 @@ frontend/
 ### Step 1: Clone the repository
 
 ```bash
-git clone https://github.com/SL-Mar/quantcoder-backend.git
-cd quantcoder-backend
+git clone https://github.com/SL-Mar/quantcoderfs.git
+cd quantcoderfs
 git checkout dev
 ```
 
@@ -190,9 +214,9 @@ See `LICENSE.md` for terms of use and redistribution.
 
 ## References
 
-- [QuantCoder FS Documentation & Updates](https://quantcoderfs.substack.com/s/development-updates-and-technical) — Technical development notes and release updates.  
-- [QuantCoder FS: Strategy Research](https://quantcoderfs.substack.com/s/strategies) — Archive of backtested strategies and quantitative research.  
-- [Medium: *Toward Automating Quantitative Finance Research*](https://medium.com/ai-advances/towards-automating-quantitative-finance-research-c868a2a6477e) — Overview of the vision and architecture behind QuantCoder FS.
+* [QuantCoder FS Documentation & Updates](https://quantcoderfs.substack.com/s/development-updates-and-technical)
+* [QuantCoder FS: Strategy Research](https://quantcoderfs.substack.com/s/strategies)
+* [Medium: *Toward Automating Quantitative Finance Research*](https://medium.com/ai-advances/towards-automating-quantitative-finance-research-c868a2a6477e)
 
 ---
 
@@ -244,4 +268,3 @@ This version defines the current software baseline. Future versions will align w
   🌐 <a href="https://quantcoderfs.substack.com">Substack — QuantCoderFS R&D</a><br>
   💻 <a href="https://github.com/sl-mar/quantcoderfs">GitHub Repository</a>
 </p>
-
