@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
+import { faMap, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 import api from '../lib/api'
 
 interface PDFViewerProps {
@@ -21,20 +21,16 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
   const [availableFiles, setAvailableFiles] = useState<string[]>([])
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
 
-  // Load list of PDFs
   useEffect(() => {
-    api
-      .listFiles('articles')
-      .then(setAvailableFiles)
-      .catch((err) => console.error('Failed to load PDF list:', err))
+    api.listFiles('articles').then(setAvailableFiles).catch(console.error)
   }, [])
 
-  // Fetch selected PDF blob
   useEffect(() => {
-    if (!selectedFilename) {
+    if (!selectedFilename?.toLowerCase().endsWith('.pdf')) {
       setPdfUrl(null)
       return
     }
+
     api
       .fetchPdfBlob(selectedFilename)
       .then((blob) => {
@@ -48,18 +44,19 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
   }, [selectedFilename])
 
   return (
-    <div className="w-full h-full bg-gray-800 rounded-xl overflow-hidden flex flex-col gap-4">
-      {/* Title */}
-      <div className="px-4 pt-4">
-        <h2 className="text-lg font-semibold text-white mb-2">PDF Reader</h2>
+    <div className="w-full h-full bg-gray-800 rounded-xl p-4 shadow-md flex flex-col gap-4">
+      {/* Header */}
+      <div className="text-base font-semibold text-white tracking-tight flex items-center gap-2">
+        <FontAwesomeIcon icon={faMap} className="text-blue-400" />
+        PDF Reader
       </div>
 
-      {/* Select + Generate */}
-      <div className="flex items-center gap-4 px-4">
+      {/* File Selector + Generate Button */}
+      <div className="flex items-center gap-3">
         <select
           value={selectedFilename || ''}
           onChange={(e) => onSelect(e.target.value || null)}
-          className="px-3 py-2 rounded bg-gray-700 text-white text-sm"
+          className="px-3 py-2 rounded-md bg-gray-700 text-white text-sm w-64"
         >
           <option value="">Select PDF...</option>
           {availableFiles.map((f) => (
@@ -73,12 +70,12 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
           <button
             onClick={() => onGenerateCode(selectedFilename)}
             disabled={isLoading}
-            className={`inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-medium transition ${
+            className={`flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm transition ${
               isLoading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
             <FontAwesomeIcon icon={faWandMagicSparkles} />
-            <span>{isLoading ? 'Generating…' : 'Generate Code'}</span>
+            <span>Generate Code</span>
           </button>
         )}
       </div>

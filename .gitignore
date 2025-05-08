@@ -22,3 +22,5 @@ venv
 
 # Ignore generated strategy files and backtests
 backend/projects/lean/Algorithm.Python/
+user_workdir
+experimental

@@ -4,11 +4,12 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 const FILEMANAGER_BASE_URL = `${BASE_URL}/filemanager`
 const CODER_BASE_URL = `${BASE_URL}/coder`
 const SETTINGS_BASE_URL = `${BASE_URL}/settings`
+const BACKTESTER_BASE_URL = `${BASE_URL}/backtester`
 
 type FileFolder = 'articles' | 'codes'
 
 const api = {
-  /** 1️⃣ List all files in a given folder (`articles` or `codes`) */
+  /** 1️⃣ List all files in a given folder */
   async listFiles(folder: FileFolder): Promise<string[]> {
     const res = await fetch(`${FILEMANAGER_BASE_URL}?folder=${encodeURIComponent(folder)}`)
     if (!res.ok) {
@@ -30,7 +31,7 @@ const api = {
     return res.blob()
   },
 
-  /** 3️⃣ Kick off unified Extract+Code by uploading the PDF */
+  /** 3️⃣ Kick off Extract+Code by uploading a PDF */
   async generateCode(filename: string): Promise<GeneratedCode> {
     const pdfBlob = await this.fetchPdfBlob(filename)
 
@@ -48,8 +49,8 @@ const api = {
     return res.json()
   },
 
-  /** 4️⃣ Load a text or code file from `articles` or `codes` */
-  async loadFile(
+  /** 4️⃣ Load a text/code file (.py, .txt) */
+  async loadTextFile(
     filename: string,
     folder: FileFolder
   ): Promise<{ filename: string; content: string }> {
@@ -58,12 +59,25 @@ const api = {
     )
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.detail || `Failed to load file "${filename}"`)
+      throw new Error(err.detail || `Failed to load text file "${filename}"`)
     }
     return res.json()
   },
 
-  /** 5️⃣ Delete a file from `articles` or `codes` */
+  /**
+   * 5️⃣ Smart file loader (PDFs → blob, Text → parsed JSON)
+   */
+  async loadFile(
+    filename: string,
+    folder: FileFolder
+  ): Promise<{ filename: string; content: string } | Blob> {
+    const isPdf = filename.toLowerCase().endsWith('.pdf')
+    return isPdf
+      ? this.fetchPdfBlob(filename)
+      : this.loadTextFile(filename, folder)
+  },
+
+  /** 6️⃣ Delete a file from workspace */
   async deleteFile(filename: string, folder: FileFolder): Promise<void> {
     const res = await fetch(
       `${FILEMANAGER_BASE_URL}/${encodeURIComponent(filename)}?folder=${encodeURIComponent(folder)}`,
@@ -75,7 +89,7 @@ const api = {
     }
   },
 
-  /** 6️⃣ Save generated code into the `codes` folder inside user_workdir */
+  /** 7️⃣ Save generated code to `codes` folder */
   async saveFile(
     content: string,
     filename: string,
@@ -95,7 +109,7 @@ const api = {
     }
   },
 
-  /** 7️⃣ Get the active LLM models (manager and store) */
+  /** 8️⃣ Get active LLM models */
   async getActiveLLM(): Promise<{ manager: string; store: string }> {
     const res = await fetch(`${SETTINGS_BASE_URL}/llm/active`)
     if (!res.ok) {
@@ -105,7 +119,7 @@ const api = {
     return res.json()
   },
 
-  /** 8️⃣ Update one of the LLM fields (manager or store) */
+  /** 9️⃣ Update active LLM field */
   async updateLLM(field: 'manager' | 'store', model_name: string): Promise<{ manager: string; store: string }> {
     const res = await fetch(`${SETTINGS_BASE_URL}/llm`, {
       method: 'POST',
@@ -119,13 +133,26 @@ const api = {
     return res.json()
   },
 
-  /** 9️⃣ List all supported models (for dropdowns, etc.) */
+  /** 🔟 List supported OpenAI models */
   async listSupportedModels(): Promise<string[]> {
     const res = await fetch(`${SETTINGS_BASE_URL}/llm/models`)
     if (!res.ok) {
       throw new Error('Failed to fetch supported LLM models')
     }
     return res.json()
+  },
+
+  /** 🔁 Trigger a background backtest */
+  async triggerBacktest(filename: string, content: string): Promise<void> {
+    const res = await fetch(`${BACKTESTER_BASE_URL}/trigger-backtest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename, content }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || 'Failed to trigger backtest')
+    }
   },
 }
 

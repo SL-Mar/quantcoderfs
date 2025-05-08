@@ -1,62 +1,66 @@
 from crewai import Agent
 from tools.code_tools import SummaryTool, CodeGenerationTool, CodeValidationTool
-from tools.LeanBacktestTool import LeanBacktestTool
-from tools.SaveCodeTool import SaveCodeTool
 from core.llm_provider import get_llm
 
-# LLM Configuration (you can adjust model, temperature etc.)
 llm = get_llm(role="store")  
 
 summary_generator_agent = Agent(
     role="Strategy Summarizer",
     goal="Generate a structured summary of trading logic and risk management from extracted PDF sections.",
-    backstory="You analyze structured research and extract trading logic, risk rules, and indicator use.",
+    backstory=(
+        "You are a systematic trader who reviews structured research sections. "
+        "You generate concise summaries focused on indicators, entry/exit logic, and risk management rules."
+    ),
     tools=[SummaryTool()],
     allow_delegation=False,
-    llm=llm,
+    llm = llm
 )
 
 code_generator_agent = Agent(
     role="QuantConnect Developer",
     goal="Translate strategy summary into complete, syntactically correct QuantConnect Python code.",
-    backstory="You are a specialist in Lean/QuantConnect and generate clean Python algorithms from structured specs.",
+    backstory=(
+        "You specialize in building production-ready QuantConnect algorithms and know the Lean API deeply. "
+        "You follow user summaries precisely and generate error-free Python code."
+    ),
     tools=[CodeGenerationTool()],
     allow_delegation=False,
-    llm=llm,
+    llm = llm
 )
 
 code_validator_agent = Agent(
     role="Syntax Validator",
     goal="Check Python code for syntax errors using static AST parsing only.",
-    backstory="You validate Python code syntax using the AST module. You do not modify code.",
+    backstory=(
+        "You are a validation tool that performs static syntax checks using Python's AST module. "
+        "Correct the code if it is not syntactically valid."
+    ),
     tools=[CodeValidationTool()],
     allow_delegation=False,
-    llm=llm,
+    llm = llm
 )
 
 code_refinement_agent = Agent(
     role="Code Refiner",
-    goal="Fix syntax and logic errors in QuantConnect Python code using LLMs.",
-    backstory="You diagnose and fix broken QuantConnect Python code using context from validation errors.",
+    goal="Fix syntax and logic errors in QuantConnect Python code.",
+    backstory=(
+        "You are a senior quant developer specialist of QuantConnect. When given QuantConnect algorithm written in Python, "
+        "you check the code step by step for compilation or logic error and return fully functional corrected QuantConnect-compatible code."
+    ),
     tools=[],
     allow_delegation=False,
-    llm=llm,
+    llm = llm
 )
 
-save_code_agent = Agent(
-    role="Code Saver",
-    goal="Save the generated QuantConnect algorithm to disk so that Lean can back-test it.",
-    backstory="You take in a GeneratedCode JSON, write the source code to the proper Lean folder, and return the full path.",
-    tools=[SaveCodeTool()],
+trading_behavior_agent = Agent(
+    role="Execution Inspector",
+    goal="Verify that the QuantConnect code includes logic that triggers actual trades.",
+    backstory=(
+        "You are a Lean strategy auditor. Your job is to inspect generated algorithm code and determine "
+        "if it includes real trade-execution logic like SetHoldings, MarketOrder, or Portfolio manipulation. "
+        "You look for evidence that positions will be opened and closed during backtests."
+    ),
+    tools=[],
     allow_delegation=False,
-    llm=llm,
-)
-
-lean_backtest_agent = Agent(
-    role="Lean Backtester",
-    goal="Run a Lean CLI backtest on the saved algorithm file and return output.",
-    backstory="You call Lean CLI in the correct environment and return the backtest stdout or errors.",
-    tools=[LeanBacktestTool()],
-    allow_delegation=False,
-    llm=llm,
+    llm = llm
 )

@@ -9,21 +9,20 @@ import {
   faTrashAlt,
 } from '@fortawesome/free-solid-svg-icons'
 import { useSummaryStore } from '../lib/useSummaryStore'
-import  api  from '../lib/api'
+import api from '../lib/api'
 import { Summary } from '../types/summary'
 
-// Only these two folders now
 const folders = ['articles', 'codes'] as const
 export type Folder = (typeof folders)[number]
 
 export interface FileExplorerProps {
   onSummaryClick?: (summary: Summary) => void
+  onPdfSelect?: (filename: string) => void
 }
 
-export default function FileExplorer({ onSummaryClick }: FileExplorerProps) {
+export default function FileExplorer({ onSummaryClick, onPdfSelect }: FileExplorerProps) {
   const setSummary = useSummaryStore((s) => s.setSummary)
 
-  // hold the lists
   const [folderFiles, setFolderFiles] = useState<Record<Folder, string[]>>({
     articles: [],
     codes: [],
@@ -34,7 +33,6 @@ export default function FileExplorer({ onSummaryClick }: FileExplorerProps) {
     codes: true,
   })
 
-  // fetch both on mount
   useEffect(() => {
     fetchAll()
   }, [])
@@ -56,11 +54,17 @@ export default function FileExplorer({ onSummaryClick }: FileExplorerProps) {
   }
 
   async function handleLoad(filename: string, folder: Folder) {
+    if (!filename.toLowerCase().endsWith('.pdf')) {
+      alert('Only PDF files can be opened in the reader.')
+      return
+    }
+
     try {
       const res = await api.loadFile(filename, folder)
       const summaryObj: Summary = { filename, summary: res.content }
       setSummary(summaryObj)
       onSummaryClick?.(summaryObj)
+      onPdfSelect?.(filename) // pass filename to PDFViewer
     } catch (err) {
       console.error('Load failed:', err)
     }
@@ -103,12 +107,11 @@ export default function FileExplorer({ onSummaryClick }: FileExplorerProps) {
                   >
                     <button
                       onClick={() => handleLoad(fn, folder)}
-                      className="flex items-center gap-2 text-left text-sm w-full"
+                      className={`flex items-center gap-2 text-left text-sm w-full ${
+                        folder !== 'articles' ? 'cursor-not-allowed opacity-60' : ''
+                      }`}
                     >
-                      <FontAwesomeIcon
-                        icon={faFileAlt}
-                        className="text-blue-400"
-                      />
+                      <FontAwesomeIcon icon={faFileAlt} className="text-blue-400" />
                       <span className="truncate">{fn}</span>
                     </button>
                     <button

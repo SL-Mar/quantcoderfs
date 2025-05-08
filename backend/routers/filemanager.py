@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import os
 
 from core.logger_config import setup_logger
+import mimetypes
 
 router = APIRouter(
     prefix="/filemanager",
@@ -14,7 +15,7 @@ router = APIRouter(
 
 logger = setup_logger().getChild("filemanager")
 
-# 🔧 Define user workspace
+# Define user workspace
 BASE_DIR = os.path.join(os.getcwd(), "user_workdir")
 ALLOWED_FOLDERS = {"articles", "codes"}
 
@@ -29,7 +30,7 @@ def validate_folder(folder: str):
         raise HTTPException(status_code=400, detail=f"Invalid folder '{folder}'. Must be one of {ALLOWED_FOLDERS}.")
 
 
-# 📃 List all files in a folder
+# List all files in a folder
 @router.get("/")
 def list_files(folder: str = Query(...)):
     validate_folder(folder)
@@ -47,7 +48,7 @@ def list_files(folder: str = Query(...)):
     return {"files": files}
 
 
-# 📤 Stream a PDF from the 'articles' folder
+# Stream a PDF from the 'articles' folder
 @router.get("/pdf/{filename}")
 def get_pdf(filename: str, folder: str = Query("articles")):
     validate_folder(folder)
@@ -62,8 +63,6 @@ def get_pdf(filename: str, folder: str = Query("articles")):
 
     return FileResponse(file_path, media_type="application/pdf")
 
-
-# 🔽 Load a text or code file (.txt from articles, .py from codes)
 @router.get("/load/{filename}")
 def load_file(filename: str, folder: str = Query(...)):
     validate_folder(folder)
@@ -74,15 +73,19 @@ def load_file(filename: str, folder: str = Query(...)):
         logger.warning(f"[LOAD] File not found: {file_path}")
         raise HTTPException(status_code=404, detail="File not found")
 
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        logger.info(f"[LOAD] Loaded file: {filename}")
-        return {"filename": filename, "content": content}
-    except Exception:
-        logger.error("[LOAD] Error reading file", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to read file")
-
+    mime, _ = mimetypes.guess_type(file_path)
+    if mime and mime.startswith("text"):
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            logger.info(f"[LOAD] Loaded text file: {filename}")
+            return {"filename": filename, "content": content}
+        except Exception:
+            logger.error("[LOAD] Error reading text file", exc_info=True)
+            raise HTTPException(status_code=500, detail="Failed to read text file")
+    else:
+        logger.info(f"[LOAD] Serving as binary: {filename}")
+        return FileResponse(file_path)
 
 @router.post("/save")
 def save_file(
@@ -146,7 +149,7 @@ def save_file(
         raise HTTPException(status_code=500, detail="Could not save file")
 
 
-# 🗑️ Delete a file
+# Delete a file
 @router.delete("/{filename}")
 def delete_file(filename: str, folder: str = Query(...)):
     validate_folder(folder)

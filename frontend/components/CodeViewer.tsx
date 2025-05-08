@@ -2,7 +2,13 @@
 
 import React, { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSave, faCopy, faEraser, faFileCode } from '@fortawesome/free-solid-svg-icons'
+import {
+  faSave,
+  faCopy,
+  faEraser,
+  faPlay,
+  faFileCode,
+} from '@fortawesome/free-solid-svg-icons'
 import { faPython } from '@fortawesome/free-brands-svg-icons'
 import type { GeneratedCode } from '../types/code'
 import Editor from '@monaco-editor/react'
@@ -16,6 +22,7 @@ interface CodeViewerProps {
 export default function CodeViewer({ generatedCode, onClear }: CodeViewerProps) {
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [backtestStatus, setBacktestStatus] = useState<null | 'running' | 'success' | 'error'>(null)
 
   const handleCopy = async () => {
     if (!generatedCode?.code) return
@@ -34,24 +41,38 @@ export default function CodeViewer({ generatedCode, onClear }: CodeViewerProps) 
       await api.saveFile(generatedCode.code, generatedCode.filename, 'codes')
       setSaved(true)
       setTimeout(() => setSaved(false), 1500)
-
-      // ✅ Notify FileExplorer to refresh
       window.dispatchEvent(new CustomEvent('code-saved', { detail: generatedCode.filename }))
     } catch (err) {
       console.error('Failed to save to disk:', err)
     }
   }
 
+  const handleRunBacktest = async () => {
+    if (!generatedCode) return
+    setBacktestStatus('running')
+    try {
+      await api.triggerBacktest(generatedCode.filename, generatedCode.code)
+      setBacktestStatus('success')
+      setTimeout(() => setBacktestStatus(null), 2000)
+    } catch (err) {
+      console.error('Backtest failed:', err)
+      setBacktestStatus('error')
+      setTimeout(() => setBacktestStatus(null), 2000)
+    }
+  }
+
+  const buttonBase = 'flex items-center gap-2 px-2 py-1 rounded transition text-blue-400 hover:text-blue-300 active:scale-95'
+
   return (
-    <div className="relative flex flex-col h-full">
+    <div className="w-full h-full bg-gray-800 rounded-xl p-4 shadow-md flex flex-col gap-4 relative">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-4 px-2">
-        <FontAwesomeIcon icon={faPython} className="text-xl text-purple-400" />
-        <h2 className="text-purple-400 font-semibold text-xl">Generated Code</h2>
+      <div className="text-base font-semibold text-white tracking-tight flex items-center gap-2">
+        <FontAwesomeIcon icon={faPython} className="text-blue-400" />
+        Generated Code
       </div>
 
       {/* Code container */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-black rounded-md shadow-inner">
+      <div className="flex-1 flex flex-col overflow-hidden bg-gray-900 rounded-md shadow-inner">
         {!generatedCode ? (
           <div className="flex-1 flex items-center justify-center text-gray-500">
             No code generated yet.
@@ -59,42 +80,55 @@ export default function CodeViewer({ generatedCode, onClear }: CodeViewerProps) 
         ) : (
           <>
             {/* Toolbar */}
-            <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
-              <span className="flex items-center gap-2 text-sm font-mono text-gray-300 truncate">
-                <FontAwesomeIcon icon={faFileCode} className="text-gray-400" />
+            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700">
+              <span className="flex items-center gap-2 text-white font-mono text-sm truncate">
+                <FontAwesomeIcon icon={faFileCode} className="text-blue-400" />
                 {generatedCode.filename}
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-4 items-center text-sm font-medium">
                 <button
                   onClick={handleSaveToDisk}
-                  className="px-3 py-1 text-sm font-medium bg-yellow-600 hover:bg-yellow-700 text-white rounded transition flex items-center gap-2"
-                  title="Save to disk"
+                  aria-pressed={saved}
+                  className={`${buttonBase} ${saved ? 'ring-2 ring-blue-500 bg-blue-950' : ''}`}
+                  title="Save file"
                 >
                   <FontAwesomeIcon icon={faSave} />
-                  {saved ? 'Saved!' : 'Save'}
+                  <span>{saved ? 'Saved' : 'Save'}</span>
                 </button>
                 <button
                   onClick={handleCopy}
-                  className="px-3 py-1 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded transition flex items-center gap-2"
-                  title="Copy to clipboard"
+                  aria-pressed={copied}
+                  className={`${buttonBase} ${copied ? 'ring-2 ring-blue-500 bg-blue-950' : ''}`}
+                  title="Copy code"
                 >
                   <FontAwesomeIcon icon={faCopy} />
-                  {copied ? 'Copied!' : 'Copy'}
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
+                </button>
+                <button
+                  onClick={handleRunBacktest}
+                  aria-pressed={backtestStatus === 'running'}
+                  className={`${buttonBase} ${
+                    backtestStatus === 'running' ? 'ring-2 ring-blue-500 bg-blue-950' : ''
+                  }`}
+                  title="Run backtest"
+                >
+                  <FontAwesomeIcon icon={faPlay} />
+                  <span>Run</span>
                 </button>
                 {onClear && (
                   <button
                     onClick={onClear}
-                    className="px-3 py-1 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded transition flex items-center gap-2"
-                    title="Clear code view"
+                    className={`${buttonBase} hover:text-red-300`}
+                    title="Clear code"
                   >
                     <FontAwesomeIcon icon={faEraser} />
-                    Clear
+                    <span>Clear</span>
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Editor */}
+            {/* Monaco Editor */}
             <div className="flex-1 overflow-hidden">
               <Editor
                 height="100%"
@@ -116,13 +150,28 @@ export default function CodeViewer({ generatedCode, onClear }: CodeViewerProps) 
 
       {/* Toasts */}
       {saved && (
-        <div className="absolute bottom-4 right-4 bg-yellow-600 text-white px-3 py-1 text-sm rounded shadow-lg">
+        <div className="absolute bottom-4 right-4 bg-gray-700 text-white px-3 py-1 text-sm rounded shadow-lg">
           File saved to disk!
         </div>
       )}
       {copied && (
-        <div className="absolute bottom-12 right-4 bg-blue-600 text-white px-3 py-1 text-sm rounded shadow-lg">
+        <div className="absolute bottom-12 right-4 bg-gray-700 text-white px-3 py-1 text-sm rounded shadow-lg">
           Copied to clipboard!
+        </div>
+      )}
+      {backtestStatus === 'running' && (
+        <div className="absolute bottom-20 right-4 bg-blue-600 text-white px-3 py-1 text-sm rounded shadow-lg">
+          Backtest started…
+        </div>
+      )}
+      {backtestStatus === 'success' && (
+        <div className="absolute bottom-20 right-4 bg-green-600 text-white px-3 py-1 text-sm rounded shadow-lg">
+          Backtest triggered!
+        </div>
+      )}
+      {backtestStatus === 'error' && (
+        <div className="absolute bottom-20 right-4 bg-red-600 text-white px-3 py-1 text-sm rounded shadow-lg">
+          Failed to trigger backtest.
         </div>
       )}
     </div>

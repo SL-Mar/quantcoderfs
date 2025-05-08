@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react'
 import api from '../lib/api'
 
-const MODEL_PRICING: Record<string, string> = {
-  'gpt-4.1': 'Input $2.00 / Cached $0.50 / Output $8.00',
-  'o1': 'Input $15.00 / Cached $7.50 / Output $60.00',
-  'gpt-4o': 'Input $2.50 / Cached $1.25 / Output $10.00',
-  'gpt-4o-mini': 'Input $0.15 / Cached $0.075 / Output $0.60',
-  'gpt-3.5-turbo': 'Input $0.50 / Output $1.50',
-}
+const MODEL_OPTIONS = [
+  { name: 'gpt-4.1', price: 'Input $2.00 / Cached $0.50 / Output $8.00', disabled: false },
+  { name: 'gpt-4o', price: 'Input $2.50 / Cached $1.25 / Output $10.00', disabled: false },
+  { name: 'gpt-3.5-turbo', price: 'Input $0.50 / Output $1.50', disabled: false },
+  { name: 'gpt-4o-mini', price: 'Input $0.15 / Cached $0.075 / Output $0.60', disabled: true },
+  { name: 'o1', price: 'Input $15.00 / Cached $7.50 / Output $60.00', disabled: true },
+]
 
 export default function Settings() {
   const [settings, setSettings] = useState<{ manager: string; store: string } | null>(null)
@@ -33,15 +33,41 @@ export default function Settings() {
   }, [])
 
   const updateModel = async (field: 'manager' | 'store', model_name: string) => {
+    const modelInfo = MODEL_OPTIONS.find((m) => m.name === model_name)
+    if (modelInfo?.disabled) {
+      setMessage(`⚠️ ${model_name} is currently unsupported.`)
+      return
+    }
+
     try {
       const updated = await api.updateLLM(field, model_name)
       setSettings(updated)
       setMessage(`✅ Updated ${field} to ${model_name}`)
-      window.dispatchEvent(new Event('llm-updated')) // 🔄 notify badge
+      window.dispatchEvent(new Event('llm-updated'))
     } catch (err) {
       console.error('❌ Error updating model:', err)
     }
   }
+
+  const renderSelect = (field: 'manager' | 'store', value: string) => (
+    <select
+      value={value}
+      onChange={(e) => updateModel(field, e.target.value)}
+      className="w-full p-2 rounded bg-gray-100 dark:bg-gray-700"
+      title={MODEL_OPTIONS.find((m) => m.name === value)?.price || ''}
+    >
+      {MODEL_OPTIONS.map((model) => (
+        <option
+          key={model.name}
+          value={model.name}
+          disabled={model.disabled}
+          title={model.price}
+        >
+          {model.disabled ? `${model.name} (unavailable)` : model.name}
+        </option>
+      ))}
+    </select>
+  )
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-6 grid place-items-center">
@@ -54,42 +80,20 @@ export default function Settings() {
               <label className="block mb-1 text-sm font-medium text-gray-500">
                 Manager Model
               </label>
-              <select
-                value={settings.manager}
-                onChange={(e) => updateModel('manager', e.target.value)}
-                className="w-full p-2 rounded bg-gray-100 dark:bg-gray-700"
-                title={MODEL_PRICING[settings.manager] || ''}
-              >
-                {models.map((model) => (
-                  <option key={model} value={model} title={MODEL_PRICING[model]}>
-                    {model}
-                  </option>
-                ))}
-              </select>
+              {renderSelect('manager', settings.manager)}
             </div>
 
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-500">
                 Store Model
               </label>
-              <select
-                value={settings.store}
-                onChange={(e) => updateModel('store', e.target.value)}
-                className="w-full p-2 rounded bg-gray-100 dark:bg-gray-700"
-                title={MODEL_PRICING[settings.store] || ''}
-              >
-                {models.map((model) => (
-                  <option key={model} value={model} title={MODEL_PRICING[model]}>
-                    {model}
-                  </option>
-                ))}
-              </select>
+              {renderSelect('store', settings.store)}
             </div>
           </>
         )}
 
         {message && (
-          <div className="mt-4 p-2 text-sm text-green-600 bg-green-100 dark:bg-green-800 dark:text-green-200 rounded">
+          <div className="mt-4 p-2 text-sm bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 rounded">
             {message}
           </div>
         )}
