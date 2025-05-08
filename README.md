@@ -199,7 +199,6 @@ This enables rapid iteration and testing using the local LEAN environment.
 | Component                 | Access | Description                                  |
 | ------------------------- | ------ | -------------------------------------------- |
 | QuantCoder FS Backend     | Open   | Modular PDF → Code pipeline                  |
-| Chat with Fundamentals    | Open   | External interface for EODHD-based screening |
 | Frontend Interface        | Open   | Stateless Next.js app                        |
 | Authentication / Accounts | None   | No user accounts or login required           |
 
