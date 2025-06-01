@@ -1,6 +1,6 @@
 import { GeneratedCode } from '../types/code'
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8003'
 const FILEMANAGER_BASE_URL = `${BASE_URL}/filemanager`
 const CODER_BASE_URL = `${BASE_URL}/coder`
 const SETTINGS_BASE_URL = `${BASE_URL}/settings`

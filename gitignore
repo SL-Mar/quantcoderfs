@@ -1,0 +1,26 @@
+# === Python Virtual Envs & Artifacts ===
+# Backend venv
+backend/venv/
+# Bytecode
+**/__pycache__/
+**/*.pyc
+
+# Logs
+**/*.log
+
+# === Node.js / Frontend ===
+# Dependencies
+frontend/node_modules/
+# Build outputs
+frontend/.next/
+frontend/dist/
+
+# === Misc ===
+# Environment files
+*.env
+venv
+
+# Ignore generated strategy files and backtests
+backend/projects/lean/Algorithm.Python/
+backend/user_workdir
+experimental
